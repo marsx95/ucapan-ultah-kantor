@@ -62,7 +62,7 @@
             height: 45vh; /* Mobile: Mengambil 45% layar bagian atas */
             display: block;
             padding: 1rem;
-            overflow-x: hidden; /* Mengunci geser horizontal di mobile */
+            overflow-x: hidden;
             overflow-y: auto;
             background-color: #e2e8f0;
             order: 1; /* Posisi di atas pada Mobile */
@@ -72,7 +72,7 @@
             .preview-container {
                 height: 100%;
                 padding: 2rem;
-                overflow: auto; /* Bebas geser di desktop */
+                overflow: auto;
                 order: 2;
             }
         }
@@ -81,7 +81,7 @@
         .a4-canvas {
             width: 297mm;
             min-height: 210mm;
-            margin: 0; /* Rata Kiri di HP agar scale-nya rapi */
+            margin: 0; 
             background-color: #23366a;
             background-image: url('BG Ultah.jpg');
             background-size: 297mm 210mm;
@@ -97,7 +97,7 @@
 
         @media (min-width: 768px) {
             .a4-canvas {
-                margin: 0 auto; /* Tengah di desktop */
+                margin: 0 auto;
             }
         }
 
@@ -143,10 +143,6 @@
         .masonry-wishes {
             column-count: 3;
             column-gap: 1rem;
-        }
-
-        @media (max-width: 600px) {
-            /* Desain margin dalam kartunya tidak dirubah karena kita pakai efek SCALE JS */
         }
 
         .wish-card {
@@ -205,7 +201,7 @@
             <form id="wishForm" class="space-y-3 md:space-y-4">
                 <div>
                     <label class="block text-xs md:text-sm font-medium text-slate-700 mb-1">Nama Anda</label>
-                    <input type="text" id="senderName" required placeholder="Cth: Amar / Tim Palugada" 
+                    <input type="text" id="senderName" required placeholder="Cth: Budi / Tim IT" 
                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
@@ -232,7 +228,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>Unduh</span>
+                <span>Unduh PDF (Utuh)</span>
             </button>
             <button id="showAdminBtn" class="w-full text-xs text-slate-400 hover:text-slate-600 underline text-center pb-2">
                 Pengaturan Admin
@@ -273,7 +269,7 @@
     </aside>
 
     <!-- Area Pratinjau -->
-    <main class="preview-container">
+    <main class="preview-container" id="previewContainer">
         <div class="a4-canvas" id="printableArea">
             <div class="photo-area">
                 <img id="bdayPhoto" src="https://placehold.co/800x500/ffffff/0f172a?text=Memuat+Foto..." alt="Foto Ulang Tahun" crossorigin="anonymous">
@@ -364,34 +360,36 @@
         }
 
         // ==========================================
-        // FUNGSI AUTO-FIT CANVAS UNTUK HP
+        // FUNGSI AUTO-FIT CANVAS & AUTO-SCROLL ATAS
         // ==========================================
         window.fitCanvasToScreen = function() {
             const canvas = document.getElementById('printableArea');
-            const container = document.querySelector('.preview-container');
+            const container = document.getElementById('previewContainer');
             
-            // Hanya aktif jika dibuka di layar HP (lebar < 768px)
             if (window.innerWidth < 768) {
-                // Lebar asli canvas secara fisik (1122.5px = 297mm)
-                // Kita menghitung rasio (scale) agar lebar aslinya pas dengan lebar layar HP
-                const containerWidth = container.clientWidth - 32; // dikurangi padding 16px x 2
+                const containerWidth = container.clientWidth - 32; 
                 const scale = containerWidth / 1122.5; 
                 
-                // Terapkan Zoom/Scale
                 canvas.style.transform = `scale(${scale})`;
                 canvas.style.transformOrigin = 'top left';
                 
-                // Hilangkan area kosong transparan di bagian bawah akibat pengecilan (Scale)
-                const scaledHeight = canvas.offsetHeight * scale;
-                canvas.style.marginBottom = `-${canvas.offsetHeight - scaledHeight}px`;
+                const originalHeight = canvas.scrollHeight;
+                const scaledHeight = originalHeight * scale;
+                canvas.style.marginBottom = `${scaledHeight - originalHeight}px`;
             } else {
-                // Kembalikan ke normal jika dibuka di Laptop/PC
                 canvas.style.transform = 'none';
                 canvas.style.marginBottom = '0';
             }
         }
-        // Panggil fungsi ini jika orientasi HP / ukuran layar berubah
-        window.addEventListener('resize', fitCanvasToScreen);
+
+        window.addEventListener('resize', window.fitCanvasToScreen);
+
+        // Auto Scroll ke paling atas saat pertama kali dimuat di HP
+        window.addEventListener('load', () => {
+            const container = document.getElementById('previewContainer');
+            container.scrollTop = 0;
+            window.fitCanvasToScreen();
+        });
 
         async function authenticateApp() {
             try {
@@ -506,7 +504,6 @@
                     contributorsList.appendChild(badge);
                 });
                 
-                // Pastikan layout menyesuaikan layar HP setiap kali daftar ucapan bertambah panjang
                 setTimeout(window.fitCanvasToScreen, 200);
 
             }, (error) => {
@@ -601,23 +598,18 @@
             btn.disabled = true;
 
             const canvasElement = document.getElementById('printableArea');
-            
-            // SIMPAN STATE AWAL
             const originalTransform = canvasElement.style.transform;
             const originalMargin = canvasElement.style.marginBottom;
             
-            // SEMENTARA HILANGKAN EFEK ZOOM DI HP AGAR PDF-NYA TETAP HD (TAJAM)
             if (window.innerWidth < 768) {
                 canvasElement.style.transform = 'none';
                 canvasElement.style.marginBottom = '0';
-                // Beri waktu browser sedikittt untuk mencerna perubahan sebelum difoto
                 await new Promise(r => setTimeout(r, 150)); 
             }
 
             try {
-                // Foto area kanvas secara digital
                 const canvas = await html2canvas(canvasElement, {
-                    scale: 2, // Kualitas HD
+                    scale: 2, 
                     useCORS: true, 
                     backgroundColor: '#23366a'
                 });
@@ -640,7 +632,6 @@
                 console.error("Error membuat PDF:", error);
                 alert("Gagal membuat PDF. Pastikan koneksi internet stabil.");
             } finally {
-                // KEMBALIKAN EFEK ZOOM HP SEPERTI SEMULA
                 if (window.innerWidth < 768) {
                     canvasElement.style.transform = originalTransform;
                     canvasElement.style.marginBottom = originalMargin;

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Birthday Greeting Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-app: #f1f5f9;
+            --paper-bg: #ffffff;
+            --accent-color: #0f172a; 
+            --gold-accent: #d4af37;
+        }
+
+        body {
+            background-color: var(--bg-app);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #334155;
+        }
+
+        /* Tampilan area pratinjau A4 di layar */
+        .preview-container {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            min-height: 100vh;
+            overflow-y: auto;
+            background-color: #e2e8f0;
+        }
+
+        .a4-canvas {
+            width: 210mm;
+            min-height: 297mm;
+            background-color: var(--paper-bg);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            box-sizing: border-box;
+            background-image: 
+                radial-gradient(circle at 100% 0%, #f8fafc 0%, transparent 50%),
+                radial-gradient(circle at 0% 100%, #f8fafc 0%, transparent 50%);
+            border: 1px solid #cbd5e1;
+            overflow: hidden;
+        }
+
+        /* Pola dekoratif pinggiran A4 */
+        .a4-border {
+            position: absolute;
+            top: 15mm;
+            bottom: 15mm;
+            left: 15mm;
+            right: 15mm;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Konten utama dalam A4 */
+        .a4-content {
+            position: relative;
+            z-index: 1;
+            padding: 25mm 20mm;
+        }
+
+        /* Layout Masonry untuk Kartu Ucapan */
+        .masonry-wishes {
+            column-count: 2;
+            column-gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .wish-card {
+            break-inside: avoid;
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            position: relative;
+            border-top: 4px solid var(--gold-accent);
+        }
+
+        .wish-quote-icon {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            color: #f1f5f9;
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            line-height: 1;
+            z-index: 0;
+        }
+
+        /* Pengaturan Cetak (Media Print) */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0; 
+            }
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .preview-container {
+                padding: 0;
+                background-color: white;
+                display: block;
+            }
+            .a4-canvas {
+                box-shadow: none;
+                border: none;
+                width: 210mm;
+                min-height: 297mm; 
+                margin: 0;
+                page-break-after: always;
+            }
+            .wish-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col lg:flex-row h-screen overflow-hidden">
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="adminLoginModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="bg-slate-900 p-4 text-center">
+                <h3 class="text-white font-bold text-lg">Login Admin</h3>
+            </div>
+            <form id="adminLoginForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+                    <input type="text" placeholder="Masukkan username" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                    <input type="password" id="adminPassInput" placeholder="Masukkan sandi (MARS)" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none text-sm">
+                </div>
+                <p id="loginError" class="text-red-500 text-xs font-medium hidden text-center">Password salah!</p>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                    Masuk
+                </button>
+                <button type="button" id="closeLoginBtn" class="w-full mt-2 text-slate-500 hover:text-slate-800 text-sm font-medium transition-colors">
+                    Batal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADMIN SETTINGS MODAL -->
+    <div id="adminSettingsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+            <div class="bg-slate-900 p-4 flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg">Pengaturan Ulang Tahun</h3>
+                <button id="closeSettingsBtn" class="text-slate-300 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-slate-600 mb-4">Ubah informasi rekan yang sedang berulang tahun. Perubahan ini akan langsung terlihat oleh semua orang.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label for="bdayNameInput" class="block text-xs font-semibold text-slate-700 mb-1">Nama Rekan</label>
+                        <input type="text" id="bdayNameInput" placeholder="Cth: Budi Santoso" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label for="photoUrl" class="block text-xs font-semibold text-slate-700 mb-1">URL Foto (Opsional)</label>
+                        <input type="url" id="photoUrl" placeholder="https://contoh.com/foto.jpg" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none text-sm">
+                    </div>
+                    <button id="updateSettingsBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-colors">
+                        Simpan Perubahan
+                    </button>
+                </div>
+                <p id="settingsFeedback" class="text-xs mt-3 hidden text-center font-medium"></p>
+            </div>
+        </div>
+    </div>
+
+    <aside class="no-print w-full lg:w-[420px] bg-white border-r border-slate-200 flex flex-col h-full z-20 shadow-xl flex-shrink-0 relative">
+        <div class="p-6 overflow-y-auto flex-grow">
+            <div class="mb-6 text-center">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900">Office Birthday</h1>
+                <p class="text-sm text-slate-500 mt-1">Sampaikan doa untuk rekan sekantor.</p>
+            </div>
+
+            <!-- Info Siapa yang Ulang Tahun -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3 shadow-sm">
+                <div class="text-blue-500 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm text-blue-900 font-medium">Kirimkan ucapan selamat kepada:</p>
+                    <p id="formTargetName" class="text-xl font-bold text-blue-700 mt-1">Memuat...</p>
+                </div>
+            </div>
+
+            <!-- Form Kirim Ucapan -->
+            <form id="wishForm" class="space-y-4">
+                <div>
+                    <label for="colleagueName" class="block text-sm font-semibold text-slate-700 mb-1">Nama / Departemen Anda</label>
+                    <input type="text" id="colleagueName" required placeholder="Cth: Andi (Tim IT)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none transition-all text-sm">
+                </div>
+                <div>
+                    <label for="wishMessage" class="block text-sm font-semibold text-slate-700 mb-1">Ucapan & Doa</label>
+                    <textarea id="wishMessage" required rows="4" placeholder="Selamat ulang tahun! Semoga..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none transition-all text-sm resize-none"></textarea>
+                </div>
+                <button type="submit" id="submitBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Kirim Ucapan
+                </button>
+            </form>
+            
+            <!-- Daftar Orang yang Sudah Submit -->
+            <div class="mt-8 border-t border-slate-200 pt-6">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Telah Mengucapkan:</h3>
+                <div id="submittersList" class="flex flex-wrap gap-2">
+                    <span class="text-sm text-slate-400 italic">Memuat data...</span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col items-center gap-1">
+                <div id="statusIndicator" class="flex items-center gap-2 text-xs text-slate-600 font-medium bg-slate-100 px-3 py-1.5 rounded-full">
+                    <div class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" id="statusDot"></div>
+                    <span id="statusText">Menghubungkan ke Firebase...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Print & Admin -->
+        <div class="p-6 bg-slate-50 border-t border-slate-200 relative">
+            <button onclick="window.print()" class="w-full bg-white border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-bold py-3 rounded-lg shadow-sm transition-all flex justify-center items-center gap-2 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Cetak Halaman A4
+            </button>
+            <div class="flex justify-between items-center px-1">
+                <p class="text-[11px] text-slate-400">Gunakan setting kertas <b>A4</b>.</p>
+                <button id="openAdminLoginBtn" class="text-[11px] font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                    </svg>
+                    Admin
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-grow preview-container">
+        <div class="a4-canvas">
+            <div class="a4-border"></div>
+            
+            <div class="a4-content">
+                <!-- Header Kertas (Foto & Judul) -->
+                <div class="text-center mb-8">
+                    <div class="relative inline-block mb-4 group">
+                        <!-- Placeholder Foto -->
+                        <div class="w-40 h-40 rounded-full border-4 border-white shadow-xl overflow-hidden mx-auto bg-slate-100 flex items-center justify-center relative z-10">
+                            <img id="bdayPhoto" src="https://placehold.co/400x400/0f172a/ffffff?text=FOTO" alt="Foto Ulang Tahun" class="w-full h-full object-cover">
+                        </div>
+                        <!-- Dekorasi -->
+                        <div class="absolute -bottom-3 -right-3 text-4xl z-20 transform rotate-12 drop-shadow-md">🎉</div>
+                        <div class="absolute -top-2 -left-2 text-3xl z-20 transform -rotate-12 drop-shadow-md">✨</div>
+                    </div>
+                    
+                    <h2 class="font-['Playfair_Display'] text-4xl lg:text-5xl font-bold text-slate-900 mb-2 tracking-tight">
+                        Selamat Ulang Tahun,<br>
+                        <span id="bdayNameDisplay" style="color: var(--gold-accent);" class="mt-2 inline-block">Nama</span>!
+                    </h2>
+                    <p class="text-slate-600 font-medium tracking-[0.2em] uppercase text-sm flex items-center justify-center gap-3 mt-4">
+                        <span class="w-12 h-[1px] bg-slate-300"></span>
+                        Dari Kami Semua
+                        <span class="w-12 h-[1px] bg-slate-300"></span>
+                    </p>
+                </div>
+
+                <!-- Kontainer Ucapan -->
+                <div id="wishesBoard" class="masonry-wishes">
+                    <!-- Placeholder Data Kosong -->
+                    <div id="emptyBoard" class="col-span-2 text-center py-20 text-slate-400 flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+                        </svg>
+                        <p class="font-medium text-slate-500">Belum ada ucapan.</p>
+                        <p class="text-sm">Jadilah yang pertama mengirimkan doa!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // KONFIGURASI FIREBASE (GANTI INI JIKA DIHOSTING DI GITHUB ANDA SENDIRI)
+        // =========================================================================
+        
+        // Default Config (Placeholder) - Ganti dengan config dari project Firebase Anda
+        let firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Cek jika berjalan di environment platform dengan config otomatis
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'office-birthday-board';
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        }
+
+        // =========================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let currentUser = null;
+
+        // Referensi DOM
+        const form = document.getElementById('wishForm');
+        const nameInput = document.getElementById('colleagueName');
+        const messageInput = document.getElementById('wishMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        const board = document.getElementById('wishesBoard');
+        const emptyState = document.getElementById('emptyBoard');
+        
+        const bdayPhoto = document.getElementById('bdayPhoto');
+        const bdayNameDisplay = document.getElementById('bdayNameDisplay');
+        const photoUrlInput = document.getElementById('photoUrl');
+        const bdayNameInput = document.getElementById('bdayNameInput');
+        const updateSettingsBtn = document.getElementById('updateSettingsBtn');
+        const settingsFeedback = document.getElementById('settingsFeedback');
+
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+
+        const formTargetName = document.getElementById('formTargetName');
+        const submittersList = document.getElementById('submittersList');
+        
+        const adminLoginModal = document.getElementById('adminLoginModal');
+        const openAdminLoginBtn = document.getElementById('openAdminLoginBtn');
+        const closeLoginBtn = document.getElementById('closeLoginBtn');
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminPassInput = document.getElementById('adminPassInput');
+        const loginError = document.getElementById('loginError');
+        
+        const adminSettingsModal = document.getElementById('adminSettingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+        // Logic Admin Modal & Autentikasi Admin Sederhana
+        openAdminLoginBtn.addEventListener('click', () => {
+            adminLoginModal.classList.remove('hidden');
+            adminPassInput.value = '';
+            loginError.classList.add('hidden');
+        });
+        
+        closeLoginBtn.addEventListener('click', () => adminLoginModal.classList.add('hidden'));
+        
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (adminPassInput.value === 'MARS') {
+                adminLoginModal.classList.add('hidden');
+                adminSettingsModal.classList.remove('hidden');
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        closeSettingsBtn.addEventListener('click', () => adminSettingsModal.classList.add('hidden'));
+
+        // Fungsi Autentikasi Firebase
+        function renderWishes(wishes) {
+            if (wishes.length === 0) {
+                emptyState.style.display = 'flex';
+                Array.from(board.children).forEach(el => {
+                    if (el.id !== 'emptyBoard') el.remove();
+                });
+                updateSubmittersList([]);
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            Array.from(board.children).forEach(el => {
+                if (el.id !== 'emptyBoard') el.remove();
+            });
+
+            // Urutkan dari yang terlama
+            const sorted = [...wishes].sort((a, b) => a.timestamp - b.timestamp);
+
+            sorted.forEach(wish => {
+                const card = document.createElement('div');
+                card.className = 'wish-card relative z-10';
+                
+                const quoteIcon = document.createElement('div');
+                quoteIcon.className = 'wish-quote-icon';
+                quoteIcon.textContent = '"';
+                
+                const textEl = document.createElement('p');
+                textEl.className = 'relative z-10 font-medium text-sm text-slate-600 mb-4 leading-relaxed';
+                textEl.textContent = wish.message;
+
+                const footer = document.createElement('div');
+                footer.className = 'border-t border-slate-100 pt-3 mt-auto flex items-center justify-between';
+                
+                const nameWrapper = document.createElement('div');
+                nameWrapper.className = 'flex items-center gap-2';
+                
+                const initial = document.createElement('div');
+                initial.className = 'w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold';
+                initial.textContent = wish.name.substring(0, 1).toUpperCase();
+                
+                const nameEl = document.createElement('span');
+                nameEl.className = 'font-bold text-xs text-slate-900 uppercase tracking-wide';
+                nameEl.textContent = wish.name;
+
+                const dateEl = document.createElement('span');
+                dateEl.className = 'text-[10px] text-slate-400';
+                dateEl.textContent = wish.timestamp ? formatDate(wish.timestamp) : '';
+
+                nameWrapper.appendChild(initial);
+                nameWrapper.appendChild(nameEl);
+                footer.appendChild(nameWrapper);
+                footer.appendChild(dateEl);
+
+                card.appendChild(quoteIcon);
+                card.appendChild(textEl);
+                card.appendChild(footer);
+
+                board.appendChild(card);
+            });
+
+            // Update List Pengirim di Sidebar
+            updateSubmittersList(wishes);
+        }
+
+        function updateSubmittersList(wishes) {
+            if (wishes.length === 0) {
+                submittersList.innerHTML = '<span class="text-sm text-slate-400 italic">Belum ada...</span>';
+                return;
+            }
+            
+            // Ambil nama-nama unik dari pengirim
+            const uniqueNames = [...new Set(wishes.map(w => w.name))];
+            
+            submittersList.innerHTML = '';
+            uniqueNames.forEach(name => {
+                const badge = document.createElement('span');
+                badge.className = 'px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 shadow-sm';
+                badge.textContent = name;
+                submittersList.appendChild(badge);
+            });
+        }
+
+        function getWishesCollection() {
+            // Sesuai aturan: /artifacts/{appId}/public/data/{collectionName}
+            return collection(db, 'artifacts', appId, 'public', 'data', 'office_wishes');
+        }
+
+        function getSettingsDoc() {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'photo_config');
+        }
+
+        // Fungsi untuk mengambil dan mendengarkan data ucapan secara real-time
+        function listenToWishes() {
+            if (!currentUser) return;
+
+            onSnapshot(getWishesCollection(), (snapshot) => {
+                const wishes = [];
+                snapshot.forEach((doc) => {
+                    wishes.push({ id: doc.id, ...doc.data() });
+                });
+                renderWishes(wishes);
+            }, (error) => {
+                console.error("Gagal ambil ucapan:", error);
+            });
+        }
+
+        function listenToSettings() {
+            if (!currentUser) return;
+
+            onSnapshot(getSettingsDoc(), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.url) {
+                        bdayPhoto.src = data.url;
+                        photoUrlInput.value = data.url;
+                    }
+                    if (data.name) {
+                        bdayNameDisplay.textContent = data.name;
+                        bdayNameInput.value = data.name;
+                        // Update info di atas form ucapan
+                        formTargetName.textContent = data.name;
+                    }
+                } else {
+                    formTargetName.textContent = "Rekan Kita";
+                }
+            }, (error) => {
+                console.error("Gagal ambil pengaturan:", error);
+            });
+        }
+
+        // Update Pengaturan (Foto & Nama)
+        updateSettingsBtn.addEventListener('click', async () => {
+            const url = photoUrlInput.value.trim();
+            const name = bdayNameInput.value.trim();
+            if (!currentUser) return;
+
+            updateSettingsBtn.textContent = '...';
+            try {
+                await setDoc(getSettingsDoc(), { 
+                    url: url,
+                    name: name || 'Nama'
+                }, { merge: true });
+                settingsFeedback.textContent = "Info berhasil diupdate!";
+                settingsFeedback.className = "text-xs mt-2 block text-green-600";
+            } catch (error) {
+                console.error(error);
+                settingsFeedback.textContent = "Gagal mengupdate info.";
+                settingsFeedback.className = "text-xs mt-2 block text-red-600";
+            }
+            updateSettingsBtn.textContent = 'Simpan Info';
+            setTimeout(() => { settingsFeedback.className = "hidden"; }, 3000);
+        });
+
+        // Submit Ucapan
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            
+            const name = nameInput.value.trim();
+            const message = messageInput.value.trim();
+            if (!name || !message) return;
+
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Menyimpan...';
+            submitBtn.classList.add('opacity-75');
+
+            const newWish = {
+                name: name,
+                message: message,
+                timestamp: Date.now()
+            };
+
+            try {
+                await addDoc(getWishesCollection(), newWish);
+                form.reset();
+            } catch (error) {
+                console.error("Error menyimpan data: ", error);
+                const errMsg = document.createElement('div');
+                errMsg.className = 'text-red-500 text-xs text-center mt-2 font-medium';
+                errMsg.textContent = 'Gagal menyimpan. Pastikan Firebase rules mengizinkan write.';
+                form.appendChild(errMsg);
+                setTimeout(() => errMsg.remove(), 4000);
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.classList.remove('opacity-75');
+        });
+
+        // Helper untuk memformat tanggal timestamp ke string
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        // Fungsi utama untuk inisialisasi Firebase dan autentikasi Anonim
+        async function authenticateApp() {
+            try {
+                statusText.textContent = "Menghubungkan ke server...";
+                statusDot.classList.replace('bg-yellow-400', 'bg-blue-400');
+                
+                // Login secara anonim agar siapapun bisa membaca/menulis tanpa perlu daftar akun
+                const userCredential = await signInAnonymously(auth);
+                currentUser = userCredential.user;
+                
+                // Update status UI
+                statusText.textContent = "Terhubung (Live)";
+                statusDot.classList.replace('bg-blue-400', 'bg-green-500');
+                statusDot.classList.remove('animate-pulse');
+
+                // Mulai menarik data dari Firebase secara real-time
+                listenToSettings();
+                listenToWishes();
+            } catch (error) {
+                console.error("Gagal terhubung ke Firebase:", error);
+                statusText.textContent = "Gagal terhubung (Cek Koneksi/Konfigurasi)";
+                statusDot.classList.replace('bg-yellow-400', 'bg-red-500');
+                statusDot.classList.remove('animate-pulse');
+            }
+        }
+
+        // Hapus fallback image error agar tidak loop
+        bdayPhoto.addEventListener('error', function() {
+            this.src = 'https://placehold.co/400x400/0f172a/ffffff?text=FOTO+ERROR';
+        });
+
+        // Jalankan
+        authenticateApp();
+    </script>
+</body>
+</html>

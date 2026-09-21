@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- Library untuk mengubah HTML menjadi Gambar dan PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -18,7 +22,6 @@
             overflow: hidden;
         }
 
-        /* Panel Samping (Form & Kontrol) */
         .sidebar {
             width: 400px;
             background-color: white;
@@ -31,36 +34,32 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.05);
         }
 
-        /* Area Pratinjau */
         .preview-container {
             flex-grow: 1;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Ubah ke flex-start agar canvas bisa memanjang */
+            align-items: flex-start;
             padding: 2rem;
             height: 100%;
             overflow-y: auto;
             background-color: #e2e8f0;
         }
 
-        /* Kertas A4 Dinamis (Bisa Memanjang) */
+        /* Kertas Canvas */
         .a4-canvas {
             width: 297mm;
-            min-height: 210mm; /* Tinggi minimal 1 halaman A4 */
-            background-color: #23366a; /* Warna biru lanjutan jika tembus ke halaman 2 */
+            min-height: 210mm;
+            background-color: #23366a;
             background-image: url('BG Ultah.jpg');
             background-size: 297mm 210mm;
             background-position: top center;
             background-repeat: no-repeat;
             position: relative;
             box-sizing: border-box;
-            padding-bottom: 20mm; /* Jarak ekstra di bagian paling bawah */
+            padding-bottom: 20mm;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
         }
 
-        /* Posisi Foto (Dikunci dalam satuan milimeter agar tidak bergeser) */
         .photo-area {
             position: absolute;
             top: 18.5mm;
@@ -81,7 +80,6 @@
             display: block;
         }
 
-        /* Teks Nama */
         .name-area {
             position: absolute;
             top: 102mm; 
@@ -91,10 +89,9 @@
             z-index: 10;
         }
 
-        /* Area Daftar Ucapan (Mulai dari bawah Nama, mengalir ke bawah tanpa batas) */
         .wishes-area {
             position: relative;
-            margin-top: 125mm; /* Titik mulai di bawah nama dan foto */
+            margin-top: 125mm;
             margin-left: 15mm;
             width: 267mm;
         }
@@ -106,7 +103,7 @@
 
         .wish-card {
             break-inside: avoid;
-            page-break-inside: avoid; /* Jangan memotong kartu jika pas di pergantian kertas */
+            page-break-inside: avoid;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 1rem;
@@ -125,35 +122,6 @@
             left: 10px;
             line-height: 1;
             z-index: 0;
-        }
-
-        /* Pengaturan Khusus Saat Dicetak (Print) */
-        @media print {
-            @page {
-                size: A4 landscape;
-                margin: 0; 
-            }
-            body {
-                background: white;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                display: block;
-            }
-            .sidebar {
-                display: none !important;
-            }
-            .preview-container {
-                padding: 0;
-                background-color: transparent;
-                display: block;
-            }
-            .a4-canvas {
-                box-shadow: none;
-                margin: 0;
-            }
-            .wish-card {
-                background: rgba(255, 255, 255, 0.95) !important;
-            }
         }
 
         #customModal {
@@ -187,7 +155,7 @@
             <form id="wishForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Nama Anda</label>
-                    <input type="text" id="senderName" required placeholder="Cth: Budi / Tim IT" 
+                    <input type="text" id="senderName" required placeholder="Cth: Amar / Tim Palugada" 
                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
@@ -210,11 +178,12 @@
         </div>
 
         <div class="mt-auto pt-6 space-y-3">
-            <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+            <!-- Tombol diganti fungsinya dari window.print() menjadi sistem Download PDF Dinamis -->
+            <button id="downloadPdfBtn" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Cetak / Simpan PDF
+                <span>Unduh PDF (Utuh)</span>
             </button>
             <button id="showAdminBtn" class="w-full text-xs text-slate-400 hover:text-slate-600 underline text-center">
                 Pengaturan Admin
@@ -254,19 +223,18 @@
     </aside>
 
     <main class="preview-container">
+        <!-- Tambahkan id="printableArea" untuk target snapshot -->
         <div class="a4-canvas" id="printableArea">
             <div class="photo-area">
-                <img id="bdayPhoto" src="https://placehold.co/800x500/ffffff/0f172a?text=Memuat+Foto..." alt="Foto Ulang Tahun">
+                <img id="bdayPhoto" src="https://placehold.co/800x500/ffffff/0f172a?text=Memuat+Foto..." alt="Foto Ulang Tahun" crossorigin="anonymous">
             </div>
             
             <div class="name-area">
-                <!-- PENGATURAN FONT SANS-SERIF & WARNA PUTIH + BAYANGAN -->
                 <h2 class="font-sans text-4xl font-extrabold tracking-tight text-white drop-shadow-xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                     Untuk: <span id="bdayNameDisplay" class="text-white">...</span>
                 </h2>
             </div>
 
-            <!-- AREA UCAPAN SEKARANG BEBAS TUMBUH KE BAWAH -->
             <div class="wishes-area">
                 <div id="wishesBoard" class="masonry-wishes">
                     <div id="emptyBoard" class="col-span-3 text-center py-10 text-slate-700/60 flex flex-col items-center bg-white/50 rounded-xl mx-auto w-1/2 mt-10">
@@ -534,6 +502,70 @@
         });
 
         authenticateApp();
+
+        // ==========================================
+        // FUNGSI BARU: EXPORT PDF DINAMIS
+        // ==========================================
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('downloadPdfBtn');
+            const originalText = btn.innerHTML;
+            
+            // Ubah teks tombol dan nonaktifkan sementara
+            btn.innerHTML = '<span class="animate-pulse">Sedang Memproses PDF...</span>';
+            btn.disabled = true;
+
+            try {
+                // Ambil elemen kanvas A4
+                const canvasElement = document.getElementById('printableArea');
+                
+                // Hilangkan bayangan box-shadow sementara agar tidak ikut tercetak di pinggiran
+                const originalShadow = canvasElement.style.boxShadow;
+                canvasElement.style.boxShadow = 'none';
+
+                // Gunakan html2canvas untuk merender ulang area tersebut menjadi gambar digital
+                const canvas = await html2canvas(canvasElement, {
+                    scale: 2, // Kualitas gambar 2x lebih tajam
+                    useCORS: true, // Mengizinkan render gambar silang-domain (foto eksternal)
+                    backgroundColor: '#23366a'
+                });
+
+                // Kembalikan bayangan
+                canvasElement.style.boxShadow = originalShadow;
+
+                // Ekstrak data gambar
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Panggil jsPDF (Buat ukuran PDF tepat seukuran kanvas yang memanjang)
+                const { jsPDF } = window.jspdf;
+                
+                // Orientasi disesuaikan otomatis (Landscape jika lebih lebar, Portrait jika lebih tinggi)
+                const orientation = canvas.width > canvas.height ? 'l' : 'p';
+                
+                // Atur ukuran kertas PDF (format) sesuai persis dengan pixel html2canvas
+                const pdf = new jsPDF({
+                    orientation: orientation,
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+
+                // Tempelkan gambar hasil render ke dalam PDF
+                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                
+                // Dapatkan nama ulang tahun untuk nama file
+                const bdayName = document.getElementById('bdayNameDisplay').innerText || 'Rekan';
+                
+                // Simpan dan unduh otomatis
+                pdf.save(`Ucapan_Ulang_Tahun_${bdayName}.pdf`);
+                
+            } catch (error) {
+                console.error("Error membuat PDF:", error);
+                alert("Gagal membuat PDF. Pastikan koneksi internet stabil.");
+            } finally {
+                // Kembalikan tombol seperti semula
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
     </script>
 </body>
 </html>

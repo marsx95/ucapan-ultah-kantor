@@ -323,7 +323,7 @@
         // ==========================================
         // KONFIGURASI FIREBASE 
         // ==========================================
-        const defaultFirebaseConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyCMQ9zaJoUpclQGcSC0nEOW3ffWSpJXFiw",
             authDomain: "ucapan-ultah-4b7fa.firebaseapp.com",
             databaseURL: "https://ucapan-ultah-4b7fa-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -334,7 +334,6 @@
             measurementId: "G-1HK5BB366K"
         };
         
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultFirebaseConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'office-birthday-board';
 
         // Inisialisasi Firebase

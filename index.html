@@ -439,10 +439,6 @@
                     const defaultName = "[Nama Rekan]";
                     bdayNameDisplay.textContent = defaultName;
                     sidebarBdayName.textContent = "Belum Diatur Admin";
-                    setDoc(bdayInfoRef, {
-                        name: defaultName,
-                        photoUrl: "https://placehold.co/800x500/ffffff/0f172a?text=Foto+Akan+Tampil+Di+Sini"
-                    }).catch(err => console.log("Hanya info: Gagal membuat data default awal."));
                 }
             }, (error) => {
                 console.error("Error mengambil info ultah:", error);
